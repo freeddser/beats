@@ -2,7 +2,23 @@
 [![GoReportCard](http://goreportcard.com/badge/elastic/beats)](http://goreportcard.com/report/elastic/beats)
 [![Reviewed by Hound](https://img.shields.io/badge/Reviewed_by-Hound-8E64B0.svg)](https://houndci.com)
 
+
+### how to create new output modules?
+  Create new modules code here: libbeat\outputs\consolegavin
+
+  Register modules: libbeat\publisher\includes\includes.go
+
+  test -> add config rows in yaml
+
+  output.consolegavin:
+
+  pretty: true
+
 # Beats - The Lightweight Shippers of the Elastic Stack
+
+
+
+
 
 The [Beats](https://www.elastic.co/beats) are lightweight data
 shippers, written in Go, that you install on your servers to capture all sorts
