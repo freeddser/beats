@@ -31,6 +31,7 @@ filebeat.inputs:
   paths:
 #    - /var/log/*.log
     - D:\soft\httpd-2.4.53-o111n-x64-vc15\Apache24\logs\access.log
+    - D:\soft\filebeat-6.7.1-windows-x86_64\filebeat-6.7.1-windows-x86_64\1.txt
 
   # Exclude lines. A list of regular expressions to match. It drops the lines that are
   # matching any regular expression from the list.
@@ -145,7 +146,9 @@ setup.kibana:
   #password: "changeme"
 
 output.consolegavin:
-  pretty: true
+#  pretty: true
+  post_api: "https://127.0.0.1/abc"
+
 # ------------------------------ Logstash Output -------------------------------
 #output.logstash:
   # The Logstash hosts

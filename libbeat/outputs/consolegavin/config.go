@@ -20,8 +20,8 @@ package consolegavin
 import "github.com/elastic/beats/v7/libbeat/outputs/codec"
 
 type Config struct {
-	Codec codec.Config `config:"codec"`
-
+	Codec   codec.Config `config:"codec"`
+	PostAPI string       `config:"post_api"`
 	// old pretty settings to use if no codec is configured
 	Pretty bool `config:"pretty"`
 

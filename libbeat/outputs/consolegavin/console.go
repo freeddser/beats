@@ -20,11 +20,8 @@ package consolegavin
 import (
 	"bufio"
 	"context"
+	json2 "encoding/json"
 	"fmt"
-	"os"
-	"runtime"
-	"time"
-
 	"github.com/elastic/beats/v7/libbeat/beat"
 	"github.com/elastic/beats/v7/libbeat/common"
 	"github.com/elastic/beats/v7/libbeat/logp"
@@ -32,6 +29,9 @@ import (
 	"github.com/elastic/beats/v7/libbeat/outputs/codec"
 	"github.com/elastic/beats/v7/libbeat/outputs/codec/json"
 	"github.com/elastic/beats/v7/libbeat/publisher"
+	"os"
+	"runtime"
+	"time"
 )
 
 type consolegavin struct {
@@ -42,6 +42,8 @@ type consolegavin struct {
 	codec    codec.Codec
 	index    string
 }
+
+var config Config
 
 type consolegavinEvent struct {
 	Timestamp time.Time `json:"@timestamp" struct:"@timestamp"`
@@ -60,10 +62,9 @@ func makeconsolegavin(
 	observer outputs.Observer,
 	cfg *common.Config,
 ) (outputs.Group, error) {
-	config := defaultConfig
+	//config := defaultConfig
 	err := cfg.Unpack(&config)
 	if err != nil {
-		fmt.Println("FFFFF")
 		return outputs.Fail(err)
 	}
 
@@ -84,6 +85,8 @@ func makeconsolegavin(
 	if err != nil {
 		return outputs.Fail(fmt.Errorf("consolegavin output initialization failed with: %v", err))
 	}
+	//fmt.Println(c)
+	//fmt.Println(enc)
 	// check stdout actually being available
 	if runtime.GOOS != "windows" {
 		if _, err = c.out.Stat(); err != nil {
@@ -91,6 +94,9 @@ func makeconsolegavin(
 			return outputs.Fail(err)
 		}
 	}
+
+	//fmt.Println(cfg.GetFields())
+	//fmt.Println(config.PostAPI)
 	return outputs.Success(config.BatchSize, 0, c)
 }
 
@@ -126,7 +132,6 @@ func (c *consolegavin) Publish(_ context.Context, batch publisher.Batch) error {
 var nl = []byte("\n")
 
 func (c *consolegavin) publishEvent(event *publisher.Event) bool {
-	//fmt.Println("11111")
 	serializedEvent, err := c.codec.Encode(c.index, &event.Content)
 	if err != nil {
 		if !event.Guaranteed() {
@@ -157,6 +162,22 @@ func (c *consolegavin) publishEvent(event *publisher.Event) bool {
 func (c *consolegavin) writeBuffer(buf []byte) error {
 	//fmt.Println("XXXXXXXXXXX")
 	written := 0
+
+	if len(buf) > 1 {
+		fmt.Println("-------------start")
+		fmt.Println(config.PostAPI)
+
+		//fmt.Println(string(buf))
+		var data Data
+		err := json2.Unmarshal(buf, &data)
+		if err != nil {
+			fmt.Println("len of str:", len(buf))
+			fmt.Println("json error:", err)
+		}
+		fmt.Println("len of str:", len(buf), "[json]->", data.Message)
+		fmt.Println("-------------end")
+	}
+
 	for written < len(buf) {
 		n, err := c.writer.Write(buf[written:])
 		if err != nil {
