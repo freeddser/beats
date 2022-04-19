@@ -1,4 +1,4 @@
-package consolegavin
+package submitter
 
 import "time"
 

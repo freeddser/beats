@@ -145,9 +145,9 @@ setup.kibana:
   #username: "elastic"
   #password: "changeme"
 
-output.consolegavin:
+output.submitter:
 #  pretty: true
-  post_api: "https://127.0.0.1/abc"
+  postapi: "http://127.0.0.1:5000/"
 
 # ------------------------------ Logstash Output -------------------------------
 #output.logstash:

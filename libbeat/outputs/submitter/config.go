@@ -15,17 +15,17 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package consolegavin
+package submitter
 
 import "github.com/elastic/beats/v7/libbeat/outputs/codec"
 
-type Config struct {
-	Codec   codec.Config `config:"codec"`
-	PostAPI string       `config:"post_api"`
+type submitterConfig struct {
+	Codec codec.Config `config:"codec"`
 	// old pretty settings to use if no codec is configured
-	Pretty bool `config:"pretty"`
-
+	Pretty    bool `config:"pretty"`
 	BatchSize int
+	// my customer params
+	PostAPI string `config:"postapi"`
 }
 
-var defaultConfig = Config{}
+var defaultConfig = submitterConfig{}

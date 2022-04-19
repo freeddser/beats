@@ -1,13 +1,13 @@
-[[consolegavin-output]]
-=== Configure the Consolegavin output
+[[submitter-output]]
+=== Configure the submitter output
 
 ++++
-<titleabbrev>Consolegavin</titleabbrev>
+<titleabbrev>submitter</titleabbrev>
 ++++
 
-The Consolegavin output writes events in JSON format to stdout.
+The submitter output writes events in JSON format to stdout.
 
-WARNING: The Consolegavin output should be used only for debugging issues as it can produce a large amount of logging data.
+WARNING: The submitter output should be used only for debugging issues as it can produce a large amount of logging data.
 
 To use this output, edit the {beatname_uc} configuration file to disable the {es}
 output by commenting it out, and enable the console output by adding `output.console`.
@@ -16,10 +16,12 @@ Example configuration:
 
 [source,yaml]
 ------------------------------------------------------------------------------
-output.consolegavin:
+output.submitter:
   pretty: true
+  postapi: "https://127.0.0.1/abc"
 ------------------------------------------------------------------------------
-
+==== pretty: true  print the log in console
+==== postapi: "https://127.0.0.1/abc"  API link
 ==== Configuration options
 
 You can specify the following `output.console` options in the +{beatname_lc}.yml+ config file:

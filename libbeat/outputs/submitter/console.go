@@ -15,12 +15,14 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package consolegavin
+package submitter
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	json2 "encoding/json"
+	"errors"
 	"fmt"
 	"github.com/elastic/beats/v7/libbeat/beat"
 	"github.com/elastic/beats/v7/libbeat/common"
@@ -29,12 +31,13 @@ import (
 	"github.com/elastic/beats/v7/libbeat/outputs/codec"
 	"github.com/elastic/beats/v7/libbeat/outputs/codec/json"
 	"github.com/elastic/beats/v7/libbeat/publisher"
+	"net/http"
 	"os"
 	"runtime"
 	"time"
 )
 
-type consolegavin struct {
+type submitter struct {
 	log      *logp.Logger
 	out      *os.File
 	observer outputs.Observer
@@ -43,9 +46,7 @@ type consolegavin struct {
 	index    string
 }
 
-var config Config
-
-type consolegavinEvent struct {
+type submitterEvent struct {
 	Timestamp time.Time `json:"@timestamp" struct:"@timestamp"`
 
 	// Note: stdlib json doesn't support inlining :( -> use `codec: 2`, to generate proper event
@@ -53,62 +54,58 @@ type consolegavinEvent struct {
 }
 
 func init() {
-	outputs.RegisterType("consolegavin", makeconsolegavin)
+	outputs.RegisterType("submitter", makesubmitter)
 }
 
-func makeconsolegavin(
+func makesubmitter(
 	_ outputs.IndexManager,
 	beat beat.Info,
 	observer outputs.Observer,
 	cfg *common.Config,
 ) (outputs.Group, error) {
 	//config := defaultConfig
-	err := cfg.Unpack(&config)
+	err := cfg.Unpack(&defaultConfig)
 	if err != nil {
 		return outputs.Fail(err)
 	}
 
 	var enc codec.Codec
-	if config.Codec.Namespace.IsSet() {
-		enc, err = codec.CreateEncoder(beat, config.Codec)
+	if defaultConfig.Codec.Namespace.IsSet() {
+		enc, err = codec.CreateEncoder(beat, defaultConfig.Codec)
 		if err != nil {
 			return outputs.Fail(err)
 		}
 	} else {
 		enc = json.New(beat.Version, json.Config{
-			Pretty:     config.Pretty,
+			Pretty:     defaultConfig.Pretty,
 			EscapeHTML: false,
 		})
 	}
 	index := beat.Beat
-	c, err := newconsolegavin(index, observer, enc)
+	c, err := newsubmitter(index, observer, enc)
 	if err != nil {
-		return outputs.Fail(fmt.Errorf("consolegavin output initialization failed with: %v", err))
+		return outputs.Fail(fmt.Errorf("submitter output initialization failed with: %v", err))
 	}
-	//fmt.Println(c)
-	//fmt.Println(enc)
 	// check stdout actually being available
 	if runtime.GOOS != "windows" {
 		if _, err = c.out.Stat(); err != nil {
-			err = fmt.Errorf("consolegavin output initialization failed with: %v", err)
+			err = fmt.Errorf("submitter output initialization failed with: %v", err)
 			return outputs.Fail(err)
 		}
 	}
 
-	//fmt.Println(cfg.GetFields())
-	//fmt.Println(config.PostAPI)
-	return outputs.Success(config.BatchSize, 0, c)
+	return outputs.Success(defaultConfig.BatchSize, 0, c)
 }
 
-func newconsolegavin(index string, observer outputs.Observer, codec codec.Codec) (*consolegavin, error) {
-	c := &consolegavin{log: logp.NewLogger("consolegavin"), out: os.Stdout, codec: codec, observer: observer, index: index}
+func newsubmitter(index string, observer outputs.Observer, codec codec.Codec) (*submitter, error) {
+	c := &submitter{log: logp.NewLogger("submitter"), out: os.Stdout, codec: codec, observer: observer, index: index}
 	c.writer = bufio.NewWriterSize(c.out, 8*1024)
 	return c, nil
 }
 
-func (c *consolegavin) Close() error { return nil }
-func (c *consolegavin) Publish(_ context.Context, batch publisher.Batch) error {
-	fmt.Println("---- new module:consolegavin ----")
+func (c *submitter) Close() error { return nil }
+func (c *submitter) Publish(_ context.Context, batch publisher.Batch) error {
+	fmt.Println("---- module:submitter ----")
 	st := c.observer
 	events := batch.Events()
 	st.NewBatch(len(events))
@@ -131,7 +128,7 @@ func (c *consolegavin) Publish(_ context.Context, batch publisher.Batch) error {
 
 var nl = []byte("\n")
 
-func (c *consolegavin) publishEvent(event *publisher.Event) bool {
+func (c *submitter) publishEvent(event *publisher.Event) bool {
 	serializedEvent, err := c.codec.Encode(c.index, &event.Content)
 	if err != nil {
 		if !event.Guaranteed() {
@@ -145,7 +142,7 @@ func (c *consolegavin) publishEvent(event *publisher.Event) bool {
 
 	if err := c.writeBuffer(serializedEvent); err != nil {
 		c.observer.WriteError(err)
-		c.log.Errorf("Unable to publish events to consolegavin: %+v", err)
+		c.log.Errorf("Unable to publish events to submitter: %+v", err)
 		return false
 	}
 
@@ -159,23 +156,18 @@ func (c *consolegavin) publishEvent(event *publisher.Event) bool {
 	return true
 }
 
-func (c *consolegavin) writeBuffer(buf []byte) error {
-	//fmt.Println("XXXXXXXXXXX")
+func (c *submitter) writeBuffer(buf []byte) error {
 	written := 0
 
 	if len(buf) > 1 {
-		fmt.Println("-------------start")
-		fmt.Println(config.PostAPI)
-
-		//fmt.Println(string(buf))
 		var data Data
 		err := json2.Unmarshal(buf, &data)
 		if err != nil {
-			fmt.Println("len of str:", len(buf))
 			fmt.Println("json error:", err)
 		}
-		fmt.Println("len of str:", len(buf), "[json]->", data.Message)
-		fmt.Println("-------------end")
+		//CALL HTTP POST API
+		//todo you can handle the error here
+		go Post(defaultConfig.PostAPI, &data, nil, nil)
 	}
 
 	for written < len(buf) {
@@ -189,6 +181,45 @@ func (c *consolegavin) writeBuffer(buf []byte) error {
 	return nil
 }
 
-func (c *consolegavin) String() string {
-	return "consolegavingavin"
+func (c *submitter) String() string {
+	return "submitter"
+}
+
+func Post(url string, body interface{}, params map[string]string, headers map[string]string) (*http.Response, error) {
+	//add post body
+	var bodyJson []byte
+	var req *http.Request
+	if body != nil {
+		var err error
+		bodyJson, err = json2.Marshal(body)
+		if err != nil {
+			fmt.Println(err)
+			return nil, errors.New("http post body to json failed")
+		}
+	}
+
+	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(bodyJson))
+	if err != nil {
+		fmt.Println(err)
+		return nil, errors.New("new request is fail: %v \n")
+	}
+	req.Header.Set("Content-type", "application/json")
+	//add params
+	q := req.URL.Query()
+	if params != nil {
+		for key, val := range params {
+			q.Add(key, val)
+		}
+		req.URL.RawQuery = q.Encode()
+	}
+	//add headers
+	if headers != nil {
+		for key, val := range headers {
+			req.Header.Add(key, val)
+		}
+	}
+	//http client
+	client := &http.Client{}
+	fmt.Printf("HTTP client:%s URL : %s Body:%s\n", http.MethodPost, req.URL.String(), bodyJson)
+	return client.Do(req)
 }
