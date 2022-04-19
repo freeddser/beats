@@ -105,7 +105,7 @@ func newsubmitter(index string, observer outputs.Observer, codec codec.Codec) (*
 
 func (c *submitter) Close() error { return nil }
 func (c *submitter) Publish(_ context.Context, batch publisher.Batch) error {
-	fmt.Println("---- module:submitter ----")
+	//fmt.Println("---- module:submitter ----")
 	st := c.observer
 	events := batch.Events()
 	st.NewBatch(len(events))
@@ -161,10 +161,8 @@ func (c *submitter) writeBuffer(buf []byte) error {
 
 	if len(buf) > 1 {
 		var data Data
-		err := json2.Unmarshal(buf, &data)
-		if err != nil {
-			fmt.Println("json error:", err)
-		}
+		_ = json2.Unmarshal(buf, &data)
+
 		//CALL HTTP POST API
 		//todo you can handle the error here
 		go Post(defaultConfig.PostAPI, &data, nil, nil)
