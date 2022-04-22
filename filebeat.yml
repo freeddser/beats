@@ -53,6 +53,25 @@ filebeat.inputs:
 
 # ============================== Filebeat modules ==============================
 
+- type: log
+
+  # Unique ID among all inputs, an ID is required.
+  id: my-waf-log
+
+  # Change to true to enable this input configuration.
+  enabled: true
+
+#  multiline:
+#  multiline.pattern: '^---\w+---A--'
+#  multiline.negate: true
+#  multiline.match: after
+
+  # Paths that should be crawled and fetched. Glob based paths.
+  paths:
+    #    - /var/log/*.log
+    - D:\git_clubs\tti\work-docs\cloud\nginx\nginx-waf\waf-error.log
+
+
 filebeat.config.modules:
   # Glob pattern for configuration loading
   path: ${path.config}/modules.d/*.yml
@@ -145,14 +164,13 @@ setup.kibana:
   #username: "elastic"
   #password: "changeme"
 
-output.submitter:
-#  pretty: true
-  postapi: "http://127.0.0.1:5000/"
+#output.submitter:
+##  pretty: true
+#  postapi: "http://127.0.0.1:5000/"
 
 # ------------------------------ Logstash Output -------------------------------
-#output.logstash:
-  # The Logstash hosts
-  #hosts: ["localhost:5044"]
+output.logstash:
+  hosts: ["localhost:6044"]
 
   # Optional SSL. By default is off.
   # List of root certificates for HTTPS server verifications
