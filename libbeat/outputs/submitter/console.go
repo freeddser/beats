@@ -33,6 +33,7 @@ import (
 	"github.com/elastic/beats/v7/libbeat/publisher"
 	"net/http"
 	"os"
+	"regexp"
 	"runtime"
 	"time"
 )
@@ -165,6 +166,10 @@ func (c *submitter) writeBuffer(buf []byte) error {
 
 		//CALL HTTP POST API
 		//todo you can handle the error here
+		fmt.Println(data.Message)
+		matched, _ := regexp.MatchString(`[\w-]+@[\w]+(?:\.[\w]+)+`, data.Message)
+		fmt.Printf("%v", matched)
+
 		go Post(defaultConfig.PostAPI, &data, nil, nil)
 	}
 

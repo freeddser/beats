@@ -165,7 +165,7 @@ setup.kibana:
   #password: "changeme"
 
 #output.submitter:
-##  pretty: true
+#  pretty: true
 #  postapi: "http://127.0.0.1:5000/"
 
 # ------------------------------ Logstash Output -------------------------------
